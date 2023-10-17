@@ -32,6 +32,10 @@ def parse_source(source: Path, target: Path) -> None:
     l1_pt = _tree["l1Pt_1"].array()
     l1_jets = _tree["allL1Jets"].array()
     jets_per_event = [len(_) for _ in l1_jets]
+    l1_eta = _tree["l1Eta_1"].array().to_numpy()
+    l1_phi = _tree["l1Phi_1"].array().to_numpy()
+    
+    l1_reco_deltaR =  (l1_eta - reco_eta)**2 + (l1_phi - reco_phi)**2
 
     lv_eta = ak.broadcast_arrays(reco_eta, l1_jets)[0]
     lv_phi = ak.broadcast_arrays(reco_phi, l1_jets)[0]
@@ -45,12 +49,15 @@ def parse_source(source: Path, target: Path) -> None:
         }
     )
 
-    l1_jets_deltas = (
+    jets_deltas = (
         (lorenz_vectors.eta - ak.flatten(lv_eta)) ** 2
         + (lorenz_vectors.phi - ak.flatten(lv_phi)) ** 2
     ) ** 0.5
-    l1_jets_pts = lorenz_vectors.pt
+    jets_pts = lorenz_vectors.pt
+    jets_eta = lorenz_vectors.eta
+    jets_phi = lorenz_vectors.phi
 
+    
     # Write all the arrays into the H5 file.
     with h5py.File(f"{target}/dataset.h5", "w") as f:
         f.create_dataset("deposits", data=deposits.to_numpy())
@@ -60,9 +67,14 @@ def parse_source(source: Path, target: Path) -> None:
         f.create_dataset("reco_pt", data=reco_pt.to_numpy())
         f.create_dataset("l1_pt", data=l1_pt.to_numpy())
         f.create_dataset("l1_jets", data=l1_jets.to_numpy())
-        f.create_dataset("l1_jets_deltas", data=l1_jets_deltas.to_numpy())
-        f.create_dataset("l1_jets_pts", data=l1_jets_pts)
+        f.create_dataset("l1_jets_deltas", data=jets_deltas.to_numpy())
+        f.create_dataset("l1_jets_pts", data=jets_pts)
+        f.create_dataset("jets_eta", data = jets_eta)
+        f.create_dataset("jets_phi", data = jets_phi) 
         f.create_dataset("jets_per_event", data=jets_per_event)
+        f.create_dataset("l1_reco_deltaR", data = l1_reco_deltaR)
+        f.create_dataset("l1_phi" , data = l1_phi)
+        f.create_dataset("l1_eta" , data = l1_eta)
 
 
 def main(args_in: Optional[List[str]] = None) -> None:

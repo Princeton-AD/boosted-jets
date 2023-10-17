@@ -11,6 +11,7 @@ from tensorflow import keras
 from utils import IsReadableDir, IsValidFile
 
 
+
 def get_dataset(
     source: Path,
 ) -> (np.array, np.array, np.array, np.array, np.array, np.array, np.array):
@@ -22,6 +23,9 @@ def get_dataset(
         reco_pt = f["reco_pt"][:]
         reco_eta = f["reco_eta"][:]
         jets_per_event = f["jets_per_event"][:]
+        jets_phi = f ["jets_phi"][:]
+        jets_eta =f["jets_eta"][:]
+        l1_reco_deltaR = f["l1_reco_deltaR"][:]
 
     return (
         X_data.reshape(-1, 9, 1) / 1024.,
@@ -31,14 +35,17 @@ def get_dataset(
         reco_pt,
         jets_per_event,
         reco_eta,
+        jets_eta,
+        jets_phi,
+        l1_reco_deltaR
     )
 
 
 def load_model(source: Path) -> keras.Model:
     return keras.models.load_model(source)
 
-
-def draw_efficeincy(reco_Pt: np.array, cnn_l1_pt: np.array, bp_l1_pt: np.array) -> None:
+ 
+def draw_efficiency(reco_Pt: np.array, cnn_l1_pt: np.array, bp_l1_pt: np.array) -> None:
     cnvs = root.TCanvas("cnvs", "canvas", 1000, 1000)
     total_hist = root.TH1F("total_hist", "Pt: total; Events; Pt ", 40, 0, 600)
     passed_hist_cnn = root.TH1F(
@@ -74,7 +81,57 @@ def draw_efficeincy(reco_Pt: np.array, cnn_l1_pt: np.array, bp_l1_pt: np.array) 
     legend.Draw()
     cnvs.Draw()
     cnvs.SaveAs(f"results/efficiency.png")
+    cnvs.Delete()
 
+def draw_deltaR_histograms(l1_reco_deltaR , jets_deltaR) -> None: 
+    
+    #find the delta R from the ht file, fill the deltaR into a hist 
+    #this needs the cut for default -99 values in the etas and phi's. This should prob be done somewhere else. 
+    
+    dR_hist_l1reco = root.TH1F("deltaR_hist_l1reco", " ; #Delta R; #events  " , 40, 0 ,1)
+    print("jets: " + str(len(jets_deltaR)))
+    print("'l1_reco: " + str(len(l1_reco_deltaR)))
+
+    for deltaR in l1_reco_deltaR: 
+
+        dR_hist_l1reco.Fill(deltaR)
+
+    jets_deltaR_hist = root.TH1F("delta R ", ";  #Delta R ;  #events", 40, 0, 1) 
+    
+    for deltaR in jets_deltaR : 
+
+        jets_deltaR_hist.Fill(deltaR)
+
+    dR_hist_l1reco.SetLineColor(1)
+    dR_hist_l1reco.SetFillColorAlpha(1,0.1)
+    jets_deltaR_hist.SetLineColor(2)
+    jets_deltaR_hist.SetFillColorAlpha(2, 0.1)
+    
+    
+    dR_canvas = root.TCanvas("dR_canvas", "" ,  1000, 1000)
+
+
+    jets_deltaR_hist.Draw("same")
+    dR_hist_l1reco.Draw("same")
+
+    legend = root.TLegend(0.9,0.2,0.7,0.3);
+
+    legend.AddEntry(dR_hist_l1reco,"bit pattern","l")
+    legend.AddEntry(jets_deltaR_hist,"CNN","l")
+    legend.Draw()
+
+    #gStyle.SetOptStats(0)
+    dR_canvas.Draw()
+    dR_canvas.SaveAs(f"results/deltaR_histogram.png")
+    dR_canvas.Delete()
+
+#def draw_eta_histograms () -> None: 
+
+
+#def draw_pt_histograms (l1_pt , jets_pt) -> None: 
+
+
+ 
 
 def run_evaluation(source: Path, modelpath: Path) -> None:
     model = load_model(modelpath)
@@ -86,23 +143,39 @@ def run_evaluation(source: Path, modelpath: Path) -> None:
         reco_pt,
         jets_per_event,
         reco_eta,
+        jets_phi,
+        jets_eta,
+        l1_reco_deltaR
+
     ) = get_dataset(source)
     scores = model.predict(X_data, verbose=0).ravel()
-    results = [(d, p) for d, p in zip(l1_jets_deltas, l1_jets_pts)]
+    results = [(d, p, e, ph) for d, p, e, ph  in zip(l1_jets_deltas, l1_jets_pts, jets_eta, jets_phi)]
     cnn_l1_pt = []
+    cnn_l1_eta = [] 
+    cnn_l1_phi = [] 
+    cnn_l1_deltaR = [] 
     prev = 0
     for reco_index, ele in enumerate(np.cumsum(jets_per_event)):
-        pt = 0
+        pt = 0 
+        eta = 0 
+        deltaR= 0
+        phi = 0
         if reco_eta[reco_index] > -5:
             mask = scores[prev:ele] > 0.5
             result = results[prev:ele]
             result = list(compress(result, mask))
             if result:
-                _, pt = min(result)
+                deltaR , pt, eta, phi  = min(result)
         cnn_l1_pt.append(pt)
+        cnn_l1_eta.append(eta)
+        cnn_l1_phi.append(phi)
+        cnn_l1_deltaR.append(deltaR) 
+        #print(len(cnn_l1_deltaR))
         prev = ele
     cnn_l1_pt = np.array(cnn_l1_pt)
-    draw_efficeincy(reco_pt, cnn_l1_pt, l1_pt)
+    draw_deltaR_histograms(l1_reco_deltaR, cnn_l1_deltaR) #implement a method called draw_historams, that calls all the individual draw histogram functions in one call. 
+    draw_efficiency(reco_pt, cnn_l1_pt, l1_pt)
+    
 
 
 def main(args_in: Optional[List[str]] = None) -> None:
