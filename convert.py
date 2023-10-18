@@ -39,6 +39,7 @@ def parse_source(source: Path, target: Path) -> None:
 
     lv_eta = ak.broadcast_arrays(reco_eta, l1_jets)[0]
     lv_phi = ak.broadcast_arrays(reco_phi, l1_jets)[0]
+    recopt_broadcasted = ak.broadcast_arrays(reco_pt, l1_jets) [0]
     l1_jets = ak.flatten(l1_jets)
     lorenz_vectors = vector.arr(
         {
@@ -53,11 +54,20 @@ def parse_source(source: Path, target: Path) -> None:
         (lorenz_vectors.eta - ak.flatten(lv_eta)) ** 2
         + (lorenz_vectors.phi - ak.flatten(lv_phi)) ** 2
     ) ** 0.5
-    jets_pts = lorenz_vectors.pt
+    jets_pt = lorenz_vectors.pt
     jets_eta = lorenz_vectors.eta
     jets_phi = lorenz_vectors.phi
 
+    #for the pt resolution: 
+    bit_pt_resolution =  reco_pt - l1_pt
+    jets_pt_resolution = ak.flatten(recopt_broadcasted) - jets_pt
+
+    #for the multiplicity plots
+    l1_jets_2 = _tree["l1Jets"].array() 
+    bit_pattern_multiplicity = [len(_) for _ in l1_jets_2 ]
     
+    #python3 convert.py /Users/jorgehernandez/Documents/HEP_work/BoostedJetML/l1TNtuple-ggHBB_29Jul.root data/dataset.h5
+        
     # Write all the arrays into the H5 file.
     with h5py.File(f"{target}/dataset.h5", "w") as f:
         f.create_dataset("deposits", data=deposits.to_numpy())
@@ -68,13 +78,16 @@ def parse_source(source: Path, target: Path) -> None:
         f.create_dataset("l1_pt", data=l1_pt.to_numpy())
         f.create_dataset("l1_jets", data=l1_jets.to_numpy())
         f.create_dataset("l1_jets_deltas", data=jets_deltas.to_numpy())
-        f.create_dataset("l1_jets_pts", data=jets_pts)
+        f.create_dataset("l1_jets_pt", data=jets_pt)
         f.create_dataset("jets_eta", data = jets_eta)
         f.create_dataset("jets_phi", data = jets_phi) 
         f.create_dataset("jets_per_event", data=jets_per_event)
-        f.create_dataset("l1_reco_deltaR", data = l1_reco_deltaR)
+        f.create_dataset("l1_reco_deltaR", data = l1_reco_deltaR.to_numpy())
         f.create_dataset("l1_phi" , data = l1_phi)
         f.create_dataset("l1_eta" , data = l1_eta)
+        f.create_dataset("bit_pt_resolution" , data = bit_pt_resolution.to_numpy())
+        f.create_dataset("jets_pt_res", data = jets_pt_resolution.to_numpy())
+        f.create_dataset("bit_multiplicity" , data = bit_pattern_multiplicity)
 
 
 def main(args_in: Optional[List[str]] = None) -> None:
