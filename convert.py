@@ -65,7 +65,23 @@ def parse_source(source: Path, target: Path) -> None:
     #for the multiplicity plots
     l1_jets_2 = _tree["l1Jets"].array() 
     bit_pattern_multiplicity = [len(_) for _ in l1_jets_2 ]
-    
+
+    #for the last plot they asked me for I dont know what the name of that is 
+   # l1_jets_2 = ak.flatten(l1_jets_2)
+    #lorentz_vectors_2 = vector.arr({
+
+        #"px": l1_jets[:]["fP"]["fX"],
+        #"py": l1_jets[:]["fP"]["fY"],
+        #"pz": l1_jets[:]["fP"]["fZ"],
+    #    "pt": l1_jets[:]["fE"],
+                 
+   # })
+   # prev = 0 
+    #for ele in np.cumsum(bit_pattern_multiplicity): 
+
+        #l1_jets_2
+
+
     #python3 convert.py /Users/jorgehernandez/Documents/HEP_work/BoostedJetML/l1TNtuple-ggHBB_29Jul.root data/dataset.h5
         
     # Write all the arrays into the H5 file.
