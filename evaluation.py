@@ -30,38 +30,38 @@ def get_dataset(
     np.array,
 ):
     with h5py.File(source, "r") as f:
-        X_data = f["deposits"][:]  # 1
-        l1_jets_deltas = f["l1_jets_deltas"][:]  # 2
-        l1_jets_pts = f["l1_jets_pt"][:]  # 3
-        l1_pt = f["l1_pt"][:]  # 4
-        reco_pt = f["reco_pt"][:]  # 5
-        reco_eta = f["reco_eta"][:]  # 6
-        jets_per_event = f["jets_per_event"][:]  # 7
-        jets_phi = f["jets_phi"][:]  # 8
-        jets_eta = f["jets_eta"][:]  # 9
-        l1_reco_deltaR = f["l1_reco_deltaR"][:]  # 10
-        bit_pt_resolution = f["bit_pt_resolution"][:]  # 11
-        jets_pt_res = f["jets_pt_res"][:]  # 12
-        l1_phi = f["l1_phi"][:]  # 13
-        l1_eta = f["l1_eta"][:]  # 14
-        bit_multiplicity = f["bit_multiplicity"][:]  # 15
+        X_data = f["deposits"][:]
+        l1_jets_deltas = f["l1_jets_deltas"][:]
+        l1_jets_pts = f["l1_jets_pt"][:]
+        l1_pt = f["l1_pt"][:]
+        reco_pt = f["reco_pt"][:]
+        reco_eta = f["reco_eta"][:]
+        jets_per_event = f["jets_per_event"][:]
+        jets_phi = f["jets_phi"][:]
+        jets_eta = f["jets_eta"][:]
+        l1_reco_deltaR = f["l1_reco_deltaR"][:]
+        bit_pt_resolution = f["bit_pt_resolution"][:]
+        jets_pt_res = f["jets_pt_res"][:]
+        l1_phi = f["l1_phi"][:]
+        l1_eta = f["l1_eta"][:]
+        bit_multiplicity = f["bit_multiplicity"][:]
 
     return (
-        X_data.reshape(-1, 9, 1) / 1024.0,  # 1
-        l1_jets_deltas,  # 2
-        l1_jets_pts,  # 3
-        l1_pt,  # 4
-        reco_pt,  # 5
-        jets_per_event,  # 6
-        reco_eta,  # 7
-        jets_eta,  # 8
-        jets_phi,  # 9
-        l1_reco_deltaR,  # 10
-        bit_pt_resolution,  # 11
-        jets_pt_res,  # 12
-        l1_eta,  # 13
-        l1_phi,  # 14
-        bit_multiplicity,  # 15
+        X_data.reshape(-1, 9, 1) / 1024.0,
+        l1_jets_deltas,
+        l1_jets_pts,
+        l1_pt,
+        reco_pt,
+        jets_per_event,
+        reco_eta,
+        jets_eta,
+        jets_phi,
+        l1_reco_deltaR,
+        bit_pt_resolution,
+        jets_pt_res,
+        l1_eta,
+        l1_phi,
+        bit_multiplicity,
     )
 
 
@@ -180,6 +180,7 @@ def draw_pt_resolution_hist(bit_pt_resolution: np.array, cnn_pt_resolution: np.a
     pt_resolution_cnn.Draw()
     pt_resolution_l1.Draw("same")
     legend.Draw()
+
     ptResolution_canvas.SetRightMargin(0.15)
     ptResolution_canvas.SetBottomMargin(0.15)
     ptResolution_canvas.SetLeftMargin(0.15)
@@ -197,13 +198,14 @@ def draw_eta_histograms(bit_eta: np.array, cnn_eta: np.array):
     bit_eta_hist, cnn_eta_hist, legend = draw_comparison_histogram(
         bit_eta, cnn_eta, bit_eta_hist, cnn_eta_hist, cut=None
     )
+
+    cnn_eta_hist.Draw()
+    bit_eta_hist.Draw("same")
+    legend.Draw()
+
     eta_canvas.SetRightMargin(0.15)
     eta_canvas.SetBottomMargin(0.15)
     eta_canvas.SetLeftMargin(0.15)
-    cnn_eta_hist.Draw()
-    bit_eta_hist.Draw("same")
-
-    legend.Draw()
 
     eta_canvas.Draw()
     eta_canvas.SaveAs(f"results/histograms/eta_histograms.png")
@@ -261,20 +263,14 @@ def draw_comparison_histogram(
     arr1: np.array, arr2: np.array, hist1: root.TH1F, hist2: root.TH1F, cut=None
 ) -> (root.TH1F, root.TH1F, root.TLegend):
     if cut is not None:
-        for ele in arr1:
-            if ele > cut:
-                hist1.Fill(ele)
+        arr1 = arr1[arr1 > cut]
+        arr2 = arr2[arr2 > cut]
 
-        for ele in arr2:
-            if ele > cut:
-                hist2.Fill(ele)
+    for ele in arr1:
+        hist1.Fill(ele)
 
-    else:
-        for ele in arr1:
-            hist1.Fill(ele)
-
-        for ele in arr2:
-            hist2.Fill(ele)
+    for ele in arr2:
+        hist2.Fill(ele)
 
     hist1.SetFillColorAlpha(1, 0.1)
     hist1.SetLineColor(1)
@@ -355,9 +351,6 @@ def run_evaluation(source: Path, modelpath: Path) -> None:
     draw_phi_histograms(l1_phi, cnn_l1_phi)
     draw_multiplicity_histograms(bit_multiplicity, cnn_jet_multiplicity)
     draw_efficiency(reco_pt, cnn_l1_pt, l1_pt)
-
-    # Instructions for another histogram:  "It should be finding the jet with the highest pt out of all the jets you select with the score > x requirement,
-    # then plot that pt in a histogram. This should be a single number per event. Then you compare that to the jet with the highest pt out of the l1Jets vector stored in the root file -> another histogram"
 
 
 def main(args_in: Optional[List[str]] = None) -> None:

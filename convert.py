@@ -1,4 +1,5 @@
 import argparse
+from logging import BufferingFormatter
 import awkward as ak
 import h5py
 import numpy as np
@@ -63,10 +64,8 @@ def parse_source(source: Path, target: Path) -> None:
     jets_pt_resolution = ak.flatten(recopt_broadcasted) - jets_pt
 
     # for the multiplicity plots
-    l1_jets_2 = _tree["l1Jets"].array()
-    bit_pattern_multiplicity = [len(_) for _ in l1_jets_2]
-
-    # python3 convert.py /Users/jorgehernandez/Documents/HEP_work/BoostedJetML/l1TNtuple-ggHBB_29Jul.root data/dataset.h5
+    bp_l1jets = _tree["l1Jets"].array()
+    bp_multiplicity = [len(_) for _ in bp_l1jets]
 
     # Write all the arrays into the H5 file.
     with h5py.File(f"{target}/dataset.h5", "w") as f:
@@ -87,7 +86,7 @@ def parse_source(source: Path, target: Path) -> None:
         f.create_dataset("l1_eta", data=l1_eta)
         f.create_dataset("bit_pt_resolution", data=bit_pt_resolution.to_numpy())
         f.create_dataset("jets_pt_res", data=jets_pt_resolution.to_numpy())
-        f.create_dataset("bit_multiplicity", data=bit_pattern_multiplicity)
+        f.create_dataset("bit_multiplicity", data=bp_multiplicity)
 
 
 def main(args_in: Optional[List[str]] = None) -> None:
