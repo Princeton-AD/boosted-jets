@@ -13,7 +13,7 @@ python3 -m pip install -r misc/requirements.txt
 
 Generate `hdf5` dataset file based on the input `root` file:
 ```
-mkdir data
+mkdir -p data/histograms
 python3 convert.py <input_root_file.root> data
 ```
 
